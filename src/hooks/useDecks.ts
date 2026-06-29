@@ -1,13 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Card, Deck, ParsedTopic } from '../types'
 import { generateId } from '../lib/id'
+import { sortDecksByRecent } from '../lib/export'
 import { loadDecks, saveDecks } from '../lib/storage'
 import { createDefaultCard, rateCard, type ReviewRating } from '../lib/spacedRepetition'
+
+function cloneDeckForImport(deck: Deck): Deck {
+  const now = new Date().toISOString()
+  return {
+    ...deck,
+    id: generateId(),
+    createdAt: deck.createdAt || now,
+    updatedAt: now,
+    cards: deck.cards.map((card) => ({
+      ...card,
+      id: generateId(),
+    })),
+  }
+}
 
 export function useDecks() {
   const [decks, setDecks] = useState<Deck[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const hydrated = useRef(false)
+
+  const sortedDecks = useMemo(() => sortDecksByRecent(decks), [decks])
 
   useEffect(() => {
     let cancelled = false
@@ -15,7 +32,7 @@ export function useDecks() {
     loadDecks()
       .then((stored) => {
         if (!cancelled) {
-          setDecks(stored)
+          setDecks(sortDecksByRecent(stored))
           hydrated.current = true
         }
       })
@@ -56,11 +73,17 @@ export function useDecks() {
         updatedAt: now,
       }
 
-      setDecks((prev) => [deck, ...prev])
+      setDecks((prev) => sortDecksByRecent([deck, ...prev]))
       return deck.id
     },
     []
   )
+
+  const importDecks = useCallback((incoming: Deck[]) => {
+    const cloned = incoming.map(cloneDeckForImport)
+    setDecks((prev) => sortDecksByRecent([...cloned, ...prev]))
+    return cloned.length
+  }, [])
 
   const deleteDeck = useCallback((deckId: string) => {
     setDecks((prev) => prev.filter((d) => d.id !== deckId))
@@ -69,14 +92,16 @@ export function useDecks() {
   const updateDeck = useCallback(
     (deckId: string, updates: { title?: string; description?: string }) => {
       setDecks((prev) =>
-        prev.map((deck) => {
-          if (deck.id !== deckId) return deck
-          return {
-            ...deck,
-            ...updates,
-            updatedAt: new Date().toISOString(),
-          }
-        })
+        sortDecksByRecent(
+          prev.map((deck) => {
+            if (deck.id !== deckId) return deck
+            return {
+              ...deck,
+              ...updates,
+              updatedAt: new Date().toISOString(),
+            }
+          })
+        )
       )
     },
     []
@@ -85,17 +110,19 @@ export function useDecks() {
   const addCard = useCallback(
     (deckId: string, front: string, back: string, topic: string) => {
       setDecks((prev) =>
-        prev.map((deck) => {
-          if (deck.id !== deckId) return deck
-          return {
-            ...deck,
-            updatedAt: new Date().toISOString(),
-            cards: [
-              ...deck.cards,
-              createDefaultCard(front, back, topic, generateId()),
-            ],
-          }
-        })
+        sortDecksByRecent(
+          prev.map((deck) => {
+            if (deck.id !== deckId) return deck
+            return {
+              ...deck,
+              updatedAt: new Date().toISOString(),
+              cards: [
+                ...deck.cards,
+                createDefaultCard(front, back, topic, generateId()),
+              ],
+            }
+          })
+        )
       )
     },
     []
@@ -103,28 +130,32 @@ export function useDecks() {
 
   const removeCard = useCallback((deckId: string, cardId: string) => {
     setDecks((prev) =>
-      prev.map((deck) => {
-        if (deck.id !== deckId) return deck
-        return {
-          ...deck,
-          updatedAt: new Date().toISOString(),
-          cards: deck.cards.filter((c) => c.id !== cardId),
-        }
-      })
+      sortDecksByRecent(
+        prev.map((deck) => {
+          if (deck.id !== deckId) return deck
+          return {
+            ...deck,
+            updatedAt: new Date().toISOString(),
+            cards: deck.cards.filter((c) => c.id !== cardId),
+          }
+        })
+      )
     )
   }, [])
 
   const updateCard = useCallback(
     (deckId: string, cardId: string, updater: (card: Card) => Card) => {
       setDecks((prev) =>
-        prev.map((deck) => {
-          if (deck.id !== deckId) return deck
-          return {
-            ...deck,
-            updatedAt: new Date().toISOString(),
-            cards: deck.cards.map((c) => (c.id === cardId ? updater(c) : c)),
-          }
-        })
+        sortDecksByRecent(
+          prev.map((deck) => {
+            if (deck.id !== deckId) return deck
+            return {
+              ...deck,
+              updatedAt: new Date().toISOString(),
+              cards: deck.cards.map((c) => (c.id === cardId ? updater(c) : c)),
+            }
+          })
+        )
       )
     },
     []
@@ -156,14 +187,15 @@ export function useDecks() {
   )
 
   const getDeck = useCallback(
-    (deckId: string) => decks.find((d) => d.id === deckId),
-    [decks]
+    (deckId: string) => sortedDecks.find((d) => d.id === deckId),
+    [sortedDecks]
   )
 
   return {
-    decks,
+    decks: sortedDecks,
     isLoading,
     createDeck,
+    importDecks,
     deleteDeck,
     updateDeck,
     addCard,

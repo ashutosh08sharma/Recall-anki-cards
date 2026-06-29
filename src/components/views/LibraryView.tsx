@@ -1,4 +1,4 @@
-import { BookOpen, Trash2, Play, HelpCircle, Bell, Pencil } from 'lucide-react'
+import { BookOpen, Trash2, Play, HelpCircle, Bell, Pencil, Share2, Download } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -12,6 +12,8 @@ interface LibraryViewProps {
   onReminders: (deckId: string) => void
   onEdit: (deckId: string) => void
   onDelete: (deckId: string) => void
+  onShare: (decks: Deck[]) => void
+  onExportAll: () => void
 }
 
 export function LibraryView({
@@ -21,6 +23,8 @@ export function LibraryView({
   onReminders,
   onEdit,
   onDelete,
+  onShare,
+  onExportAll,
 }: LibraryViewProps) {
   if (decks.length === 0) {
     return (
@@ -39,14 +43,22 @@ export function LibraryView({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Your Decks
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          {decks.length} deck{decks.length !== 1 ? 's' : ''} ·{' '}
-          {decks.reduce((s, d) => s + d.cards.length, 0)} total cards
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            Your Decks
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            {decks.length} deck{decks.length !== 1 ? 's' : ''} ·{' '}
+            {decks.reduce((s, d) => s + d.cards.length, 0)} total cards · newest first
+          </p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <Button size="sm" variant="secondary" onClick={onExportAll}>
+            <Download className="h-3.5 w-3.5" />
+            Export All
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -103,6 +115,10 @@ export function LibraryView({
                 <Button size="sm" variant="secondary" onClick={() => onEdit(deck.id)}>
                   <Pencil className="h-3.5 w-3.5" />
                   Edit
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => onShare([deck])}>
+                  <Share2 className="h-3.5 w-3.5" />
+                  Share
                 </Button>
                 <Button
                   size="sm"

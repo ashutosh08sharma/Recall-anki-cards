@@ -6,15 +6,17 @@ import { Input } from '../ui/Input'
 import { TextArea } from '../ui/TextArea'
 import { Badge } from '../ui/Badge'
 import { parseTextToTopics, parseStructuredInput } from '../../lib/parser'
-import type { ParseResult } from '../../types'
+import { ImportFromExport } from '../ImportExportPanel'
+import type { Deck, ParseResult } from '../../types'
 
 type ImportMode = 'smart' | 'structured'
 
 interface ImportViewProps {
   onCreateDeck: (title: string, description: string, result: ParseResult) => void
+  onImportDecks: (decks: Deck[]) => void
 }
 
-export function ImportView({ onCreateDeck }: ImportViewProps) {
+export function ImportView({ onCreateDeck, onImportDecks }: ImportViewProps) {
   const [mode, setMode] = useState<ImportMode>('smart')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -48,8 +50,23 @@ export function ImportView({ onCreateDeck }: ImportViewProps) {
           Import & Parse
         </h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Paste large text and we'll auto-detect topics, Q&A pairs, and flashcards.
+          Paste notes to auto-parse, or import a shared deck from a link or file.
         </p>
+      </div>
+
+      <ImportFromExport
+        onImport={(decks) => {
+          onImportDecks(decks)
+        }}
+      />
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-zinc-200" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-[var(--color-surface)] px-3 text-zinc-400">or create from text</span>
+        </div>
       </div>
 
       <div className="flex gap-2">

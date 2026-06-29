@@ -1,7 +1,12 @@
-import { useMemo, useState } from 'react'
-import type { AppView, ParseResult } from './types'
+import { useEffect, useMemo, useState } from 'react'
+import type { AppView, Deck, ParseResult } from './types'
 import { useDecks } from './hooks/useDecks'
 import { getDueCards, getRevisitCards } from './lib/spacedRepetition'
+import {
+  clearShareFromLocation,
+  decodeSharePayload,
+  readShareFromLocation,
+} from './lib/export'
 import { Layout } from './components/Layout'
 import { ImportView } from './components/views/ImportView'
 import { LibraryView } from './components/views/LibraryView'
@@ -9,13 +14,31 @@ import { StudyView } from './components/views/StudyView'
 import { QuizView } from './components/views/QuizView'
 import { EditDeckView } from './components/views/EditDeckView'
 import { RemindersView } from './components/views/RemindersView'
+import { ShareDeckDialog } from './components/ShareDeckDialog'
+import { ImportShareDialog } from './components/ImportExportPanel'
 
 function App() {
-  const { decks, isLoading, createDeck, deleteDeck, updateDeck, addCard, removeCard, updateCardFields, rateDeckCard, toggleFlag, getDeck } =
+  const { decks, isLoading, createDeck, importDecks, deleteDeck, updateDeck, addCard, removeCard, updateCardFields, rateDeckCard, toggleFlag, getDeck } =
     useDecks()
 
   const [view, setView] = useState<AppView>('import')
   const [activeDeckId, setActiveDeckId] = useState<string | null>(null)
+  const [shareDecks, setShareDecks] = useState<Deck[] | null>(null)
+  const [pendingImport, setPendingImport] = useState<Deck[] | null>(null)
+
+  useEffect(() => {
+    const payload = readShareFromLocation()
+    if (!payload) return
+
+    clearShareFromLocation()
+    decodeSharePayload(payload)
+      .then((imported) => {
+        if (imported.length > 0) setPendingImport(imported)
+      })
+      .catch(() => {
+        /* invalid share link — ignore silently */
+      })
+  }, [])
 
   const activeDeck = activeDeckId ? getDeck(activeDeckId) : undefined
 
@@ -30,6 +53,19 @@ function App() {
   const handleCreateDeck = (title: string, description: string, result: ParseResult) => {
     createDeck(title, description, result.topics)
     setView('library')
+  }
+
+  const handleImportDecks = (incoming: Deck[]) => {
+    importDecks(incoming)
+    setView('library')
+  }
+
+  const handleConfirmShareImport = () => {
+    if (pendingImport) {
+      importDecks(pendingImport)
+      setPendingImport(null)
+      setView('library')
+    }
   }
 
   const openDeck = (deckId: string) => {
@@ -85,13 +121,16 @@ function App() {
   }
 
   return (
+    <>
     <Layout
       view={view}
       onNavigate={setView}
       dueCount={dueCount}
       revisitCount={revisitCount}
     >
-      {view === 'import' && <ImportView onCreateDeck={handleCreateDeck} />}
+      {view === 'import' && (
+        <ImportView onCreateDeck={handleCreateDeck} onImportDecks={handleImportDecks} />
+      )}
 
       {view === 'library' && (
         <LibraryView
@@ -101,6 +140,11 @@ function App() {
           onReminders={handleReminders}
           onEdit={handleEdit}
           onDelete={deleteDeck}
+          onShare={setShareDecks}
+          onExportAll={() => {
+            if (decks.length === 0) return
+            setShareDecks(decks)
+          }}
         />
       )}
 
@@ -156,6 +200,19 @@ function App() {
         />
       )}
     </Layout>
+
+    {shareDecks && (
+      <ShareDeckDialog decks={shareDecks} onClose={() => setShareDecks(null)} />
+    )}
+
+    {pendingImport && (
+      <ImportShareDialog
+        decks={pendingImport}
+        onImport={handleConfirmShareImport}
+        onDismiss={() => setPendingImport(null)}
+      />
+    )}
+  </>
   )
 }
 

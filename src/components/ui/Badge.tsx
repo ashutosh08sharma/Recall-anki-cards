@@ -4,6 +4,7 @@ type BadgeVariant = 'default' | 'topic' | 'due' | 'flagged' | 'new'
 
 interface BadgeProps {
   variant?: BadgeVariant
+  className?: string
   children: ReactNode
 }
 
@@ -15,10 +16,10 @@ const styles: Record<BadgeVariant, string> = {
   new: 'bg-emerald-50 text-emerald-700',
 }
 
-export function Badge({ variant = 'default', children }: BadgeProps) {
+export function Badge({ variant = 'default', className = '', children }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[variant]}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[variant]} ${className}`}
     >
       {children}
     </span>
