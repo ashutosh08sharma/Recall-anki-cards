@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { RotateCcw, Flag, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
@@ -24,7 +24,10 @@ export function FlashCard({
     <div className="relative">
       <button
         type="button"
-        onClick={onToggleFlag}
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggleFlag()
+        }}
         className={`absolute -top-3 -right-3 z-10 rounded-full p-2 shadow-sm border transition-colors ${
           flagged
             ? 'bg-red-50 border-red-200 text-red-500'
@@ -96,10 +99,16 @@ export function StudyView({
   onToggleFlag,
   onExit,
 }: StudyViewProps) {
-  const [index, setIndex] = useState(0)
+  const [sessionCards] = useState(() => cards)
+  const [currentId, setCurrentId] = useState(() => cards[0]?.id ?? '')
   const [flipped, setFlipped] = useState(false)
 
-  if (cards.length === 0) {
+  const liveById = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards])
+
+  const currentIndex = sessionCards.findIndex((c) => c.id === currentId)
+  const card = liveById.get(currentId) ?? sessionCards[currentIndex]
+
+  if (sessionCards.length === 0 || !card) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="rounded-full bg-emerald-50 p-4 mb-4">
@@ -114,14 +123,20 @@ export function StudyView({
     )
   }
 
-  const card = cards[index]
-  const progress = ((index + 1) / cards.length) * 100
+  const progress = ((currentIndex + 1) / sessionCards.length) * 100
+
+  const goTo = (nextIndex: number) => {
+    const next = sessionCards[nextIndex]
+    if (!next) return
+    setCurrentId(next.id)
+    setFlipped(false)
+  }
 
   const handleRate = (rating: ReviewRating) => {
     onRate(card.id, rating)
     setFlipped(false)
-    if (index < cards.length - 1) {
-      setIndex(index + 1)
+    if (currentIndex < sessionCards.length - 1) {
+      goTo(currentIndex + 1)
     } else {
       onExit()
     }
@@ -133,7 +148,7 @@ export function StudyView({
         <div>
           <h1 className="text-lg font-semibold text-zinc-900">{deckTitle}</h1>
           <p className="text-sm text-zinc-500">
-            Card {index + 1} of {cards.length}
+            Card {currentIndex + 1} of {sessionCards.length}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={onExit}>
@@ -149,6 +164,7 @@ export function StudyView({
       </div>
 
       <FlashCard
+        key={card.id}
         card={card}
         flipped={flipped}
         onFlip={() => setFlipped(!flipped)}
@@ -174,11 +190,8 @@ export function StudyView({
           <Button
             variant="ghost"
             size="sm"
-            disabled={index === 0}
-            onClick={() => {
-              setIndex(index - 1)
-              setFlipped(false)
-            }}
+            disabled={currentIndex === 0}
+            onClick={() => goTo(currentIndex - 1)}
           >
             <ChevronLeft className="h-4 w-4" />
             Previous
@@ -186,11 +199,8 @@ export function StudyView({
           <Button
             variant="ghost"
             size="sm"
-            disabled={index >= cards.length - 1}
-            onClick={() => {
-              setIndex(index + 1)
-              setFlipped(false)
-            }}
+            disabled={currentIndex >= sessionCards.length - 1}
+            onClick={() => goTo(currentIndex + 1)}
           >
             Next
             <ChevronRight className="h-4 w-4" />

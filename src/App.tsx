@@ -25,6 +25,8 @@ function App() {
   const [activeDeckId, setActiveDeckId] = useState<string | null>(null)
   const [shareDecks, setShareDecks] = useState<Deck[] | null>(null)
   const [pendingImport, setPendingImport] = useState<Deck[] | null>(null)
+  const [studySessionKey, setStudySessionKey] = useState(0)
+  const [quizSessionKey, setQuizSessionKey] = useState(0)
 
   useEffect(() => {
     const payload = readShareFromLocation()
@@ -74,11 +76,13 @@ function App() {
 
   const handleStudy = (deckId: string) => {
     openDeck(deckId)
+    setStudySessionKey((k) => k + 1)
     setView('study')
   }
 
   const handleQuiz = (deckId: string) => {
     openDeck(deckId)
+    setQuizSessionKey((k) => k + 1)
     setView('quiz')
   }
 
@@ -150,6 +154,7 @@ function App() {
 
       {view === 'study' && activeDeck && (
         <StudyView
+          key={studySessionKey}
           cards={studyCards.length > 0 ? studyCards : activeDeck.cards}
           deckTitle={activeDeck.title}
           onRate={(cardId, rating) => rateDeckCard(activeDeck.id, cardId, rating)}
@@ -160,6 +165,7 @@ function App() {
 
       {view === 'quiz' && activeDeck && (
         <QuizView
+          key={quizSessionKey}
           cards={activeDeck.cards}
           deckTitle={activeDeck.title}
           onExit={exitDeckView}
