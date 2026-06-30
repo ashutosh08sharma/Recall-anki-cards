@@ -1,4 +1,15 @@
 import type { Deck } from '../types'
+import {
+  IMPORT_LIMITS,
+  assertCompressedSize,
+  assertDecompressedSize,
+  assertSharePayloadSize,
+  extractRawDecks,
+  safeParseJson,
+  sanitizeImportedDecks,
+} from './importLimits'
+
+export { IMPORT_LIMITS, ImportLimitError } from './importLimits'
 
 export const EXPORT_FORMAT_VERSION = 1
 
@@ -35,34 +46,9 @@ export function exportDeckToJson(deck: Deck): string {
 }
 
 export function parseImportJson(raw: string): Deck[] {
-  const parsed = JSON.parse(raw) as RecallExport | Deck | Deck[]
-
-  if (Array.isArray(parsed)) {
-    return parsed.filter(isDeck)
-  }
-
-  if (isDeck(parsed)) {
-    return [parsed]
-  }
-
-  if (parsed && typeof parsed === 'object' && Array.isArray(parsed.decks)) {
-    if (parsed.app !== 'recall') {
-      throw new Error('Unrecognized export format')
-    }
-    return parsed.decks.filter(isDeck)
-  }
-
-  throw new Error('Invalid import file')
-}
-
-function isDeck(value: unknown): value is Deck {
-  if (!value || typeof value !== 'object') return false
-  const deck = value as Deck
-  return (
-    typeof deck.id === 'string' &&
-    typeof deck.title === 'string' &&
-    Array.isArray(deck.cards)
-  )
+  const parsed = safeParseJson(raw)
+  const rawDecks = extractRawDecks(parsed)
+  return sanitizeImportedDecks(rawDecks)
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -77,6 +63,7 @@ function fromBase64Url(encoded: string): Uint8Array {
   const binary = atob(padded)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  assertCompressedSize(bytes)
   return bytes
 }
 
@@ -86,11 +73,12 @@ async function compress(text: string): Promise<Uint8Array> {
 }
 
 async function decompress(bytes: Uint8Array): Promise<string> {
+  assertCompressedSize(bytes)
   const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate'))
-  return new Response(stream).text()
+  const text = await new Response(stream).text()
+  assertDecompressedSize(text)
+  return text
 }
-
-const URL_SAFE_LIMIT = 6000
 
 export async function encodeSharePayload(decks: Deck[]): Promise<string> {
   const json = JSON.stringify(buildExport(decks))
@@ -100,6 +88,7 @@ export async function encodeSharePayload(decks: Deck[]): Promise<string> {
 
 export async function decodeSharePayload(payload: string): Promise<Deck[]> {
   const trimmed = payload.trim()
+  assertSharePayloadSize(trimmed)
 
   if (trimmed.startsWith('z.')) {
     const json = await decompress(fromBase64Url(trimmed.slice(2)))
@@ -108,6 +97,7 @@ export async function decodeSharePayload(payload: string): Promise<Deck[]> {
 
   if (trimmed.startsWith('j.')) {
     const json = new TextDecoder().decode(fromBase64Url(trimmed.slice(2)))
+    assertDecompressedSize(json)
     return parseImportJson(json)
   }
 
@@ -116,6 +106,7 @@ export async function decodeSharePayload(payload: string): Promise<Deck[]> {
   }
 
   const json = new TextDecoder().decode(fromBase64Url(trimmed))
+  assertDecompressedSize(json)
   return parseImportJson(json)
 }
 
@@ -124,7 +115,7 @@ export async function buildShareUrl(decks: Deck[]): Promise<string> {
   const base = `${window.location.origin}${window.location.pathname}`
   const url = `${base}#share=${payload}`
 
-  if (url.length > URL_SAFE_LIMIT) {
+  if (url.length > IMPORT_LIMITS.MAX_SHARE_PAYLOAD_CHARS) {
     throw new Error(
       `This deck is too large to share via URL (${url.length} chars). Download the JSON file instead.`
     )
@@ -136,12 +127,17 @@ export async function buildShareUrl(decks: Deck[]): Promise<string> {
 export function readShareFromLocation(): string | null {
   const hash = window.location.hash
   if (hash.startsWith('#share=')) {
-    return decodeURIComponent(hash.slice('#share='.length))
+    const payload = decodeURIComponent(hash.slice('#share='.length))
+    if (payload.length > IMPORT_LIMITS.MAX_SHARE_PAYLOAD_CHARS) return null
+    return payload
   }
 
   const params = new URLSearchParams(window.location.search)
   const share = params.get('share')
-  return share ? decodeURIComponent(share) : null
+  if (!share) return null
+  const payload = decodeURIComponent(share)
+  if (payload.length > IMPORT_LIMITS.MAX_SHARE_PAYLOAD_CHARS) return null
+  return payload
 }
 
 export function clearShareFromLocation(): void {
