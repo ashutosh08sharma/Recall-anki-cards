@@ -104,6 +104,23 @@ export function getRevisitCards(cards: Card[]): Card[] {
   return cards.filter((c) => c.flagged || c.status === 'revisit')
 }
 
+export function isActionableReminder(card: Card): boolean {
+  return card.flagged || card.status === 'revisit' || isDue(card)
+}
+
+/** Dismiss a reminder by unflagging and snoozing until tomorrow. */
+export function clearReminder(card: Card): Card {
+  const now = new Date()
+  return {
+    ...card,
+    flagged: false,
+    status:
+      card.status === 'revisit' || card.status === 'new' ? 'review' : card.status,
+    interval: Math.max(card.interval, 1),
+    nextReview: addDays(now, 1),
+  }
+}
+
 export function statusLabel(status: CardStatus): string {
   const labels: Record<CardStatus, string> = {
     new: 'New',

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { AppView, Deck, ParseResult } from './types'
 import { useDecks } from './hooks/useDecks'
 import { getDueCards, getRevisitCards } from './lib/spacedRepetition'
+import { countActionableReminders, buildGlobalReminders, buildGlobalUpcoming } from './lib/reminders'
+import { PaginatedReminderList } from './components/PaginatedReminderList'
 import {
   clearShareFromLocation,
   decodeSharePayload,
@@ -15,10 +17,13 @@ import { QuizView } from './components/views/QuizView'
 import { EditDeckView } from './components/views/EditDeckView'
 import { RemindersView } from './components/views/RemindersView'
 import { ShareDeckDialog } from './components/ShareDeckDialog'
+import { Bell } from 'lucide-react'
+import type { ReminderItem } from './lib/reminders'
+import { Button } from './components/ui/Button'
 import { ImportShareDialog } from './components/ImportExportPanel'
 
 function App() {
-  const { decks, isLoading, createDeck, importDecks, deleteDeck, updateDeck, addCard, removeCard, updateCardFields, rateDeckCard, toggleFlag, getDeck } =
+  const { decks, isLoading, createDeck, importDecks, deleteDeck, updateDeck, addCard, removeCard, updateCardFields, rateDeckCard, toggleFlag, clearCardReminder, clearReminderEntries, clearAllReminders, getDeck } =
     useDecks()
 
   const [view, setView] = useState<AppView>('import')
@@ -44,13 +49,17 @@ function App() {
 
   const activeDeck = activeDeckId ? getDeck(activeDeckId) : undefined
 
-  const { dueCount, revisitCount } = useMemo(() => {
+  const { reminderCount, dueCount, revisitCount } = useMemo(() => {
     const allCards = decks.flatMap((d) => d.cards)
     return {
+      reminderCount: countActionableReminders(allCards),
       dueCount: getDueCards(allCards).length,
       revisitCount: getRevisitCards(allCards).length,
     }
   }, [decks])
+
+  const globalReminders = useMemo(() => buildGlobalReminders(decks), [decks])
+  const globalUpcoming = useMemo(() => buildGlobalUpcoming(decks), [decks])
 
   const handleCreateDeck = (title: string, description: string, result: ParseResult) => {
     createDeck(title, description, result.topics)
@@ -103,16 +112,6 @@ function App() {
 
   const studyCards = activeDeck ? getDueCards(activeDeck.cards) : []
 
-  const allDueCards = useMemo(
-    () => decks.flatMap((d) => getDueCards(d.cards).map((c) => ({ ...c, deckId: d.id, deckTitle: d.title }))),
-    [decks]
-  )
-
-  const allRevisitCards = useMemo(
-    () => decks.flatMap((d) => getRevisitCards(d.cards).map((c) => ({ ...c, deckId: d.id, deckTitle: d.title }))),
-    [decks]
-  )
-
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--color-surface)]">
@@ -129,8 +128,7 @@ function App() {
     <Layout
       view={view}
       onNavigate={setView}
-      dueCount={dueCount}
-      revisitCount={revisitCount}
+      dueCount={reminderCount}
     >
       {view === 'import' && (
         <ImportView onCreateDeck={handleCreateDeck} onImportDecks={handleImportDecks} />
@@ -188,21 +186,29 @@ function App() {
       )}
 
       {view === 'reminders' && !activeDeck && (
-        <GlobalReminders
+        <GlobalRemindersView
+          reminderCount={reminderCount}
           dueCount={dueCount}
           revisitCount={revisitCount}
-          allDue={allDueCards}
-          allRevisit={allRevisitCards}
+          reminders={globalReminders}
+          upcoming={globalUpcoming}
           onStudyDeck={handleStudy}
+          onClearReminder={clearCardReminder}
+          onClearReminders={clearReminderEntries}
+          onClearAll={() => clearAllReminders()}
         />
       )}
 
       {view === 'reminders' && activeDeck && (
         <RemindersView
+          deckId={activeDeck.id}
           cards={activeDeck.cards}
           deckTitle={activeDeck.title}
           onStudy={() => handleStudy(activeDeck.id)}
           onExit={exitDeckView}
+          onClearReminder={clearCardReminder}
+          onClearReminders={clearReminderEntries}
+          onClearAllReminders={clearAllReminders}
         />
       )}
     </Layout>
@@ -222,66 +228,87 @@ function App() {
   )
 }
 
-function GlobalReminders({
+function GlobalRemindersView({
+  reminderCount,
   dueCount,
   revisitCount,
-  allDue,
-  allRevisit,
+  reminders,
+  upcoming,
   onStudyDeck,
+  onClearReminder,
+  onClearReminders,
+  onClearAll,
 }: {
+  reminderCount: number
   dueCount: number
   revisitCount: number
-  allDue: { deckId: string; deckTitle: string; front: string; id: string }[]
-  allRevisit: { deckId: string; deckTitle: string; front: string; id: string }[]
+  reminders: ReminderItem[]
+  upcoming: ReminderItem[]
   onStudyDeck: (deckId: string) => void
+  onClearReminder: (deckId: string, cardId: string) => void
+  onClearReminders: (entries: { deckId: string; cardId: string }[]) => void
+  onClearAll: () => void
 }) {
+  const revisitItems = reminders.filter((item) => item.kind === 'revisit')
+  const dueItems = reminders.filter((item) => item.kind === 'due')
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          All Reminders
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          {dueCount} due · {revisitCount} to revisit across all decks
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            All Reminders
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            {reminderCount} active · {dueCount} due · {revisitCount} to revisit
+          </p>
+        </div>
+        {reminderCount > 0 && (
+          <Button variant="secondary" size="sm" onClick={onClearAll}>
+            Clear all
+          </Button>
+        )}
       </div>
 
-      {allRevisit.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-zinc-900">Flagged to Revisit</h2>
-          {allRevisit.map((card) => (
-            <button
-              key={card.id}
-              type="button"
-              onClick={() => onStudyDeck(card.deckId)}
-              className="w-full text-left rounded-xl border border-red-100 bg-red-50/50 p-4 hover:bg-red-50 transition-colors"
-            >
-              <p className="text-xs text-red-500 font-medium">{card.deckTitle}</p>
-              <p className="text-sm text-zinc-800 mt-0.5">{card.front}</p>
-            </button>
-          ))}
-        </section>
-      )}
+      <PaginatedReminderList
+        title="Flagged to Revisit"
+        items={revisitItems}
+        showDeckTitle
+        onClear={onClearReminder}
+        onClearAll={() =>
+          onClearReminders(
+            revisitItems.map((item) => ({ deckId: item.deckId, cardId: item.card.id }))
+          )
+        }
+        onItemClick={(item) => onStudyDeck(item.deckId)}
+      />
 
-      {allDue.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-zinc-900">Due for Review</h2>
-          {allDue.slice(0, 12).map((card) => (
-            <button
-              key={card.id}
-              type="button"
-              onClick={() => onStudyDeck(card.deckId)}
-              className="w-full text-left rounded-xl border border-amber-100 bg-amber-50/50 p-4 hover:bg-amber-50 transition-colors"
-            >
-              <p className="text-xs text-amber-600 font-medium">{card.deckTitle}</p>
-              <p className="text-sm text-zinc-800 mt-0.5">{card.front}</p>
-            </button>
-          ))}
-        </section>
-      )}
+      <PaginatedReminderList
+        title="Due for Review"
+        items={dueItems}
+        showDeckTitle
+        onClear={onClearReminder}
+        onClearAll={() =>
+          onClearReminders(
+            dueItems.map((item) => ({ deckId: item.deckId, cardId: item.card.id }))
+          )
+        }
+        onItemClick={(item) => onStudyDeck(item.deckId)}
+      />
 
-      {allDue.length === 0 && allRevisit.length === 0 && (
+      <PaginatedReminderList
+        title="Coming Up"
+        items={upcoming}
+        showDeckTitle
+        onClear={onClearReminder}
+        showClearAll={false}
+      />
+
+      {reminderCount === 0 && upcoming.length === 0 && (
         <div className="text-center py-16">
+          <div className="rounded-full bg-emerald-50 p-4 inline-flex mb-4">
+            <Bell className="h-8 w-8 text-emerald-500" />
+          </div>
           <p className="text-lg font-medium text-zinc-900">All caught up!</p>
           <p className="text-sm text-zinc-500 mt-1">No cards need your attention.</p>
         </div>
