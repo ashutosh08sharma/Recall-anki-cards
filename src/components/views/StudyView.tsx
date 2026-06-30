@@ -40,7 +40,6 @@ export function FlashCard({
 
       <div
         className="card-flip w-full cursor-pointer"
-        onClick={onFlip}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
@@ -54,29 +53,29 @@ export function FlashCard({
         <div
           className={`card-flip-inner relative h-[min(420px,60vh)] ${flipped ? 'flipped' : ''}`}
         >
-          <div className="card-face absolute inset-0 flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-md overflow-hidden">
-            <Badge variant="topic" className="shrink-0 self-start">{card.topic}</Badge>
-            <div
-              className="card-scroll mt-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-lg leading-relaxed text-zinc-800 whitespace-pre-wrap break-words">
+          <div
+            className="card-face absolute inset-0 flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-md overflow-hidden"
+            onClick={onFlip}
+          >
+            <Badge variant="topic" className="shrink-0 self-start pointer-events-none">{card.topic}</Badge>
+            <div className="card-scroll mt-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1">
+              <p className="text-lg leading-relaxed text-zinc-800 whitespace-pre-wrap break-words pointer-events-none">
                 {card.front}
               </p>
             </div>
-            <p className="mt-4 shrink-0 text-xs text-zinc-400">Tap to reveal answer</p>
+            <p className="mt-4 shrink-0 text-xs text-zinc-400 pointer-events-none">Tap to reveal answer</p>
           </div>
-          <div className="card-face card-face-back absolute inset-0 flex flex-col rounded-2xl border border-indigo-200 bg-indigo-50/50 p-6 shadow-md overflow-hidden">
-            <Badge variant="topic" className="shrink-0 self-start">{card.topic}</Badge>
-            <div
-              className="card-scroll mt-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-lg leading-relaxed text-zinc-800 whitespace-pre-wrap break-words">
+          <div
+            className="card-face card-face-back absolute inset-0 flex flex-col rounded-2xl border border-indigo-200 bg-indigo-50/50 p-6 shadow-md overflow-hidden"
+            onClick={onFlip}
+          >
+            <Badge variant="topic" className="shrink-0 self-start pointer-events-none">{card.topic}</Badge>
+            <div className="card-scroll mt-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1">
+              <p className="text-lg leading-relaxed text-zinc-800 whitespace-pre-wrap break-words pointer-events-none">
                 {card.back}
               </p>
             </div>
-            <p className="mt-4 shrink-0 text-xs text-indigo-400">Tap to flip back</p>
+            <p className="mt-4 shrink-0 text-xs text-indigo-400 pointer-events-none">Tap to flip back</p>
           </div>
         </div>
       </div>

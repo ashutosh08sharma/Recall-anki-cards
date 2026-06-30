@@ -51,6 +51,14 @@
     transform: rotateY(180deg);
   }
 
+  .card-flip-inner:not(.flipped) .card-face-back {
+    pointer-events: none;
+  }
+
+  .card-flip-inner.flipped .card-face:not(.card-face-back) {
+    pointer-events: none;
+  }
+
   .card-scroll {
     scrollbar-width: thin;
     scrollbar-color: rgb(161 161 170 / 0.5) transparent;
