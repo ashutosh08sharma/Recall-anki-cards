@@ -4,7 +4,7 @@ import { Button } from './ui/Button'
 import { Card } from './ui/Card'
 import { Badge } from './ui/Badge'
 import type { Deck } from '../types'
-import { decodeSharePayload, parseImportJson } from '../lib/export'
+import { decodeSharePayload, parseImportJson, IMPORT_LIMITS } from '../lib/export'
 
 interface ImportShareDialogProps {
   decks: Deck[]
@@ -73,6 +73,11 @@ export function ImportFromExport({ onImport }: ImportFromExportProps) {
     setError(null)
     setPreview(null)
     try {
+      if (file.size > IMPORT_LIMITS.MAX_UPLOAD_FILE_BYTES) {
+        throw new Error(
+          `File is too large (max ${Math.round(IMPORT_LIMITS.MAX_UPLOAD_FILE_BYTES / 1024 / 1024)} MB)`
+        )
+      }
       const text = await file.text()
       const decks = parseImportJson(text)
       if (decks.length === 0) throw new Error('No decks found in file')
@@ -118,7 +123,7 @@ export function ImportFromExport({ onImport }: ImportFromExportProps) {
       <div>
         <h2 className="text-sm font-semibold text-zinc-900">Import from Recall export</h2>
         <p className="text-xs text-zinc-500 mt-0.5">
-          Upload a .json file or paste a share link from another user
+          Upload a .json file (max {Math.round(IMPORT_LIMITS.MAX_UPLOAD_FILE_BYTES / 1024 / 1024)} MB) or paste a share link
         </p>
       </div>
 
