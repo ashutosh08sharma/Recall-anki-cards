@@ -8,8 +8,9 @@ A customer-centric Anki-style flashcard app built with React, TypeScript, and Ta
 - **Structured Import** — Separate front/back fields for manual card creation
 - **Topic Organization** — Cards grouped by detected topics within each deck
 - **Study Mode** — Flip cards with spaced repetition (Again / Hard / Good / Easy)
-- **Quiz Mode** — Multiple-choice quiz from your deck
+- **Quiz Mode** — Multiple-choice quiz from your deck, with optional timed mode
 - **Reminders** — Due cards, flagged revisit items, and upcoming schedule
+- **Export & Share** — Download decks as JSON or share via link
 - **Local-first** — All data persisted in browser IndexedDB (auto-migrates from localStorage)
 
 ## Getting Started
@@ -21,6 +22,8 @@ npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173)
+
+**Live app:** [https://anki-flashcards-coral.vercel.app](https://anki-flashcards-coral.vercel.app)
 
 ## Smart Parse Format Examples
 
