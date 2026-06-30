@@ -3,7 +3,7 @@ import type { Card, Deck, ParsedTopic } from '../types'
 import { generateId } from '../lib/id'
 import { sortDecksByRecent } from '../lib/export'
 import { loadDecks, saveDecks } from '../lib/storage'
-import { createDefaultCard, rateCard, type ReviewRating } from '../lib/spacedRepetition'
+import { createDefaultCard, rateCard, clearReminder, isActionableReminder, type ReviewRating } from '../lib/spacedRepetition'
 
 function cloneDeckForImport(deck: Deck): Deck {
   const now = new Date().toISOString()
@@ -186,6 +186,62 @@ export function useDecks() {
     [updateCard]
   )
 
+  const clearCardReminder = useCallback(
+    (deckId: string, cardId: string) => {
+      updateCard(deckId, cardId, (card) => clearReminder(card))
+    },
+    [updateCard]
+  )
+
+  const clearReminderEntries = useCallback(
+    (entries: { deckId: string; cardId: string }[]) => {
+      if (entries.length === 0) return
+      const byDeck = new Map<string, Set<string>>()
+      for (const { deckId, cardId } of entries) {
+        const ids = byDeck.get(deckId) ?? new Set<string>()
+        ids.add(cardId)
+        byDeck.set(deckId, ids)
+      }
+      setDecks((prev) =>
+        sortDecksByRecent(
+          prev.map((deck) => {
+            const ids = byDeck.get(deck.id)
+            if (!ids) return deck
+            return {
+              ...deck,
+              updatedAt: new Date().toISOString(),
+              cards: deck.cards.map((card) =>
+                ids.has(card.id) && isActionableReminder(card)
+                  ? clearReminder(card)
+                  : card
+              ),
+            }
+          })
+        )
+      )
+    },
+    []
+  )
+
+  const clearAllReminders = useCallback((deckId?: string) => {
+    setDecks((prev) =>
+      sortDecksByRecent(
+        prev.map((deck) => {
+          if (deckId && deck.id !== deckId) return deck
+          const hasReminders = deck.cards.some(isActionableReminder)
+          if (!hasReminders) return deck
+          return {
+            ...deck,
+            updatedAt: new Date().toISOString(),
+            cards: deck.cards.map((card) =>
+              isActionableReminder(card) ? clearReminder(card) : card
+            ),
+          }
+        })
+      )
+    )
+  }, [])
+
   const getDeck = useCallback(
     (deckId: string) => sortedDecks.find((d) => d.id === deckId),
     [sortedDecks]
@@ -204,6 +260,9 @@ export function useDecks() {
     updateCardFields,
     rateDeckCard,
     toggleFlag,
+    clearCardReminder,
+    clearReminderEntries,
+    clearAllReminders,
     getDeck,
   }
 }

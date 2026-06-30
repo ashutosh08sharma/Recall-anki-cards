@@ -10,7 +10,6 @@ interface LayoutProps {
   view: AppView
   onNavigate: (view: AppView) => void
   dueCount: number
-  revisitCount: number
   children: React.ReactNode
 }
 
@@ -24,7 +23,6 @@ export function Layout({
   view,
   onNavigate,
   dueCount,
-  revisitCount,
   children,
 }: LayoutProps) {
   return (
@@ -58,9 +56,9 @@ export function Layout({
               >
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{label}</span>
-                {v === 'reminders' && (dueCount + revisitCount) > 0 && (
+                {v === 'reminders' && dueCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">
-                    {dueCount + revisitCount}
+                    {dueCount}
                   </span>
                 )}
               </button>
