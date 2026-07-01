@@ -1,6 +1,6 @@
+/// <reference types="node" />
 import { google } from '@ai-sdk/google'
 import { streamObject } from 'ai'
-import { env } from 'node:process'
 import { z } from 'zod'
 
 export const flashcardGenerationSchema = z.object({
@@ -96,7 +96,7 @@ Return exactly ${count} cards total across all topics.`
 }
 
 export function createFlashcardStream(input: AIGenerateRequest) {
-  if (!env.GOOGLE_GENERATIVE_AI_API_KEY) {
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     throw new Error('AI is not configured. Add GOOGLE_GENERATIVE_AI_API_KEY to your environment.')
   }
 
