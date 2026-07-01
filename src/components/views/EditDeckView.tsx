@@ -5,6 +5,7 @@ import { Card } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { TextArea } from '../ui/TextArea'
 import { Badge } from '../ui/Badge'
+import { TopicPicker, TopicTagEditor } from '../TopicTagEditor'
 import type { Card as CardType, Deck } from '../../types'
 
 interface EditDeckViewProps {
@@ -140,7 +141,7 @@ export function EditDeckView({
       ) : (
         <div className="space-y-6">
           {grouped.map(([topic, cards]) => (
-            <section key={topic}>
+            <section key={cards.map((c) => c.id).join('-')}>
               <div className="flex items-center gap-2 mb-3">
                 <Badge variant="topic">{topic}</Badge>
                 <span className="text-xs text-zinc-400">{cards.length} cards</span>
@@ -149,14 +150,12 @@ export function EditDeckView({
                 {cards.map((card) => (
                   <Card key={card.id} padding="sm" className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <input
-                        type="text"
+                      <TopicTagEditor
                         value={card.topic}
-                        onChange={(e) =>
-                          onUpdateCard(card.id, { topic: e.target.value })
+                        suggestions={topics}
+                        onCommit={(nextTopic) =>
+                          onUpdateCard(card.id, { topic: nextTopic })
                         }
-                        className="text-xs font-medium rounded-md border border-zinc-200 px-2 py-1 text-indigo-700 bg-indigo-50/50 focus:outline-none focus:ring-1 focus:ring-indigo-300 w-40"
-                        aria-label="Card topic"
                       />
                       <button
                         type="button"
@@ -226,11 +225,10 @@ export function EditDeckView({
             className="min-h-[80px]"
           />
         </div>
-        <Input
-          label="Topic"
+        <TopicPicker
           value={newTopic}
-          onChange={(e) => setNewTopic(e.target.value)}
-          placeholder="General"
+          topics={topics}
+          onChange={setNewTopic}
         />
         <Button
           onClick={handleAddCard}

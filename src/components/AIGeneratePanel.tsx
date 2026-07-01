@@ -76,9 +76,9 @@ export function AIGeneratePanel({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-violet-200/80 bg-gradient-to-br from-violet-50 via-white to-indigo-50/80 p-5">
+      <div className="rounded-xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50 via-white to-indigo-50/80 p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 shadow-sm shadow-violet-200">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-sm shadow-indigo-200">
             <Wand2 className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -108,10 +108,10 @@ export function AIGeneratePanel({
               max={AI_GENERATION_LIMITS.MAX_CARDS}
               value={cardCount}
               onChange={(e) => setCardCount(Number(e.target.value))}
-              className="h-2 flex-1 cursor-pointer accent-violet-600"
+              className="h-2 flex-1 cursor-pointer accent-indigo-600"
               disabled={isLoading}
             />
-            <span className="w-8 text-center text-sm font-semibold tabular-nums text-violet-700">
+            <span className="w-8 text-center text-sm font-semibold tabular-nums text-indigo-700">
               {cardCount}
             </span>
           </div>
@@ -131,7 +131,7 @@ export function AIGeneratePanel({
                 onClick={() => setDifficulty(option.value)}
                 className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
                   difficulty === option.value
-                    ? 'bg-violet-600 text-white shadow-sm'
+                    ? 'bg-indigo-600 text-white shadow-sm'
                     : 'border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
                 }`}
               >
@@ -153,7 +153,7 @@ export function AIGeneratePanel({
       <div className="flex flex-wrap gap-2">
         <Button
           size="lg"
-          className="flex-1 bg-violet-600 hover:bg-violet-700 focus-visible:ring-violet-500"
+          className="flex-1"
           disabled={!canGenerate}
           onClick={handleGenerate}
         >
@@ -165,7 +165,7 @@ export function AIGeneratePanel({
           ) : (
             <>
               <Sparkles className="h-4 w-4" />
-              Generate with Gemini
+              Generate
             </>
           )}
         </Button>

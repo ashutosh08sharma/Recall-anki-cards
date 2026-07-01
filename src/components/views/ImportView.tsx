@@ -104,9 +104,7 @@ export function ImportView({ onCreateDeck, onImportDecks }: ImportViewProps) {
             onClick={() => handleModeChange(id)}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               mode === id
-                ? id === 'ai'
-                  ? 'bg-violet-600 text-white'
-                  : 'bg-indigo-600 text-white'
+                ? 'bg-indigo-600 text-white'
                 : 'border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
             }`}
           >
@@ -187,7 +185,7 @@ A: A key-value store that maps keys to buckets using a hash function for O(1) av
 
       <Button
         size="lg"
-        className={`w-full ${mode === 'ai' ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
+        className="w-full"
         disabled={!canCreate}
         onClick={handleCreate}
       >

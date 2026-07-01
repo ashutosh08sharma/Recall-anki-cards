@@ -21,12 +21,15 @@ import { Bell } from 'lucide-react'
 import type { ReminderItem } from './lib/reminders'
 import { Button } from './components/ui/Button'
 import { ImportShareDialog } from './components/ImportExportPanel'
+import { hasLibraryFilterParams } from './lib/libraryFilters'
 
 function App() {
   const { decks, isLoading, createDeck, importDecks, deleteDeck, updateDeck, addCard, removeCard, updateCardFields, rateDeckCard, toggleFlag, clearCardReminder, clearReminderEntries, clearAllReminders, getDeck } =
     useDecks()
 
-  const [view, setView] = useState<AppView>('import')
+  const [view, setView] = useState<AppView>(() =>
+    hasLibraryFilterParams(window.location.search) ? 'library' : 'import'
+  )
   const [activeDeckId, setActiveDeckId] = useState<string | null>(null)
   const [shareDecks, setShareDecks] = useState<Deck[] | null>(null)
   const [pendingImport, setPendingImport] = useState<Deck[] | null>(null)
