@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { google } from '@ai-sdk/google'
-import { streamObject } from 'ai'
+import { generateObject } from 'ai'
 import { z } from 'zod'
 
 export const flashcardGenerationSchema = z.object({
@@ -23,12 +23,17 @@ export const flashcardGenerationSchema = z.object({
   summary: z.string().optional().describe('One-line deck summary'),
 })
 
+export type FlashcardGeneration = z.infer<typeof flashcardGenerationSchema>
+
 const LIMITS = {
   MIN_CARDS: 3,
-  MAX_CARDS: 30,
+  MAX_CARDS: 20,
   MAX_TOPIC_LENGTH: 120,
   MAX_PROMPT_LENGTH: 2_000,
 } as const
+
+/** Fast model for serverless — avoids thinking-mode latency on Vercel. */
+const GENERATION_MODEL = 'gemini-2.0-flash'
 
 export type AIGenerateRequest = {
   topic: string
@@ -95,21 +100,16 @@ ${context ? `\nAdditional context from the learner:\n${context}` : ''}
 Return exactly ${count} cards total across all topics.`
 }
 
-export function createFlashcardStream(input: AIGenerateRequest) {
+export async function generateFlashcards(input: AIGenerateRequest): Promise<FlashcardGeneration> {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     throw new Error('AI is not configured. Add GOOGLE_GENERATIVE_AI_API_KEY to your environment.')
   }
 
-  return streamObject({
-    model: google('gemini-3-flash-preview'),
+  const { object } = await generateObject({
+    model: google(GENERATION_MODEL),
     schema: flashcardGenerationSchema,
     prompt: buildGenerationPrompt(input),
-    providerOptions: {
-      google: {
-        thinkingConfig: {
-          thinkingLevel: 'medium',
-        },
-      },
-    },
   })
+
+  return object
 }

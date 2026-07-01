@@ -22,7 +22,7 @@ export type FlashcardGeneration = z.infer<typeof flashcardGenerationSchema>
 
 export const AI_GENERATION_LIMITS = {
   MIN_CARDS: 3,
-  MAX_CARDS: 30,
+  MAX_CARDS: 20,
   MAX_TOPIC_LENGTH: 120,
   MAX_PROMPT_LENGTH: 2_000,
 } as const

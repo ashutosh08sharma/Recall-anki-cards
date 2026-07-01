@@ -17,8 +17,8 @@ function devApiPlugin(env: Record<string, string>): Plugin {
             if (value) process.env[key] = value
           }
 
-          const { createFlashcardStream, parseGenerateRequest } = await import(
-            './api/lib/generateFlashcards.ts'
+          const { generateFlashcards, parseGenerateRequest } = await import(
+            './server/generateFlashcards.ts'
           )
 
           const chunks: Buffer[] = []
@@ -27,23 +27,11 @@ function devApiPlugin(env: Record<string, string>): Plugin {
           }
           const body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
           const input = parseGenerateRequest(body)
-          const result = createFlashcardStream(input)
-          const response = result.toTextStreamResponse()
+          const object = await generateFlashcards(input)
 
-          res.statusCode = response.status
-          response.headers.forEach((value: string, key: string) => {
-            res.setHeader(key, value)
-          })
-
-          if (response.body) {
-            const reader = response.body.getReader()
-            while (true) {
-              const { done, value } = await reader.read()
-              if (done) break
-              res.write(value)
-            }
-          }
-          res.end()
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+          res.end(JSON.stringify(object))
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Generation failed'
           const status = message.includes('not configured') ? 503 : 400

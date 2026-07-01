@@ -146,7 +146,9 @@ export function AIGeneratePanel({
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error.message.includes('503') || error.message.includes('not configured')
             ? 'AI is not configured yet. Add GOOGLE_GENERATIVE_AI_API_KEY in Vercel project settings.'
-            : error.message || 'Something went wrong while generating cards.'}
+            : error.message.includes('504') || error.message.toLowerCase().includes('timeout')
+              ? 'Generation timed out. Try fewer cards or a narrower topic.'
+              : error.message || 'Something went wrong while generating cards.'}
         </div>
       )}
 
