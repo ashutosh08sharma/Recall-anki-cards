@@ -1,37 +1,64 @@
-import { useMemo, useState } from 'react'
-import { Sparkles, FileText, Layers } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Sparkles, Layers, Wand2, FileUp } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { TextArea } from '../ui/TextArea'
-import { Badge } from '../ui/Badge'
 import { parseTextToTopics, parseStructuredInput } from '../../lib/parser'
 import { ImportFromExport } from '../ImportExportPanel'
+import { AIGeneratePanel } from '../AIGeneratePanel'
+import { DeckPreview } from '../DeckPreview'
 import type { Deck, ParseResult } from '../../types'
 
-type ImportMode = 'smart' | 'structured'
+type CreateMode = 'ai' | 'smart' | 'structured'
 
 interface ImportViewProps {
   onCreateDeck: (title: string, description: string, result: ParseResult) => void
   onImportDecks: (decks: Deck[]) => void
 }
 
+const modeTabs: { id: CreateMode; label: string; icon: typeof Sparkles }[] = [
+  { id: 'ai', label: 'AI Generate', icon: Wand2 },
+  { id: 'smart', label: 'Paste Notes', icon: Sparkles },
+  { id: 'structured', label: 'Front / Back', icon: Layers },
+]
+
 export function ImportView({ onCreateDeck, onImportDecks }: ImportViewProps) {
-  const [mode, setMode] = useState<ImportMode>('smart')
+  const [mode, setMode] = useState<CreateMode>('ai')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [rawText, setRawText] = useState('')
   const [frontText, setFrontText] = useState('')
   const [backText, setBackText] = useState('')
+  const [aiPreview, setAiPreview] = useState<ParseResult | null>(null)
+  const [aiStreaming, setAiStreaming] = useState(false)
 
-  const preview = useMemo<ParseResult>(() => {
+  const parsedPreview = useMemo<ParseResult>(() => {
     if (mode === 'smart') {
       return parseTextToTopics(rawText, title || undefined)
     }
-    return parseStructuredInput(title, frontText, backText)
+    if (mode === 'structured') {
+      return parseStructuredInput(title, frontText, backText)
+    }
+    return { topics: [], totalCards: 0 }
   }, [mode, rawText, title, frontText, backText])
 
-  const canCreate = preview.totalCards > 0 && title.trim().length > 0
+  const preview = mode === 'ai' ? aiPreview ?? { topics: [], totalCards: 0 } : parsedPreview
+
+  const handleAiPreviewChange = useCallback((next: ParseResult | null, streaming: boolean) => {
+    setAiPreview(next)
+    setAiStreaming(streaming)
+  }, [])
+
+  const handleModeChange = (next: CreateMode) => {
+    setMode(next)
+    if (next !== 'ai') {
+      setAiPreview(null)
+      setAiStreaming(false)
+    }
+  }
+
+  const canCreate = preview.totalCards > 0 && title.trim().length > 0 && !aiStreaming
 
   const handleCreate = () => {
     if (!canCreate) return
@@ -41,107 +68,112 @@ export function ImportView({ onCreateDeck, onImportDecks }: ImportViewProps) {
     setRawText('')
     setFrontText('')
     setBackText('')
+    setAiPreview(null)
+    setAiStreaming(false)
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Import & Parse
+          Create a Deck
         </h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Paste notes to auto-parse, or import a shared deck from a link or file.
+          Generate flashcards with AI, paste your notes, or import a shared deck.
         </p>
       </div>
 
-      <ImportFromExport
-        onImport={(decks) => {
-          onImportDecks(decks)
-        }}
-      />
+      <ImportFromExport onImport={onImportDecks} />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-zinc-200" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-[var(--color-surface)] px-3 text-zinc-400">or create from text</span>
+          <span className="bg-[var(--color-surface)] px-3 text-zinc-400">
+            or create a new deck
+          </span>
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setMode('smart')}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            mode === 'smart'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
-          }`}
-        >
-          <Sparkles className="h-4 w-4" />
-          Smart Parse
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('structured')}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            mode === 'structured'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
-          }`}
-        >
-          <Layers className="h-4 w-4" />
-          Front / Back
-        </button>
+      <div className="flex flex-wrap gap-2">
+        {modeTabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => handleModeChange(id)}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              mode === id
+                ? id === 'ai'
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-indigo-600 text-white'
+                : 'border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
       <Card className="space-y-5">
         <Input
           label="Deck Title"
-          placeholder="e.g. Biology Chapter 5"
+          placeholder={
+            mode === 'ai'
+              ? 'e.g. Data Structures (auto-filled from topic)'
+              : 'e.g. Data Structures & Algorithms'
+          }
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <Input
           label="Description"
-          placeholder="Optional — what this deck covers"
+          placeholder="Optional — scope, exam prep, or extra context for AI"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
 
-        {mode === 'smart' ? (
+        {mode === 'ai' && (
+          <AIGeneratePanel
+            deckTitle={title}
+            deckDescription={description}
+            onDeckTitleChange={setTitle}
+            onPreviewChange={handleAiPreviewChange}
+          />
+        )}
+
+        {mode === 'smart' && (
           <TextArea
             label="Paste your notes"
             hint="Supports # topics, Q:/A:, Front:/Back:, term — definition, and numbered questions"
-            placeholder={`# Cell Biology
+            placeholder={`# Data Structures
 
-Q: What is mitosis?
-A: Cell division producing two identical daughter cells.
+Q: What is a hash table?
+A: A key-value store that maps keys to buckets using a hash function for O(1) average lookup.
 
-Q: What is meiosis?
-A: Cell division producing four genetically different gametes.
-
-# Genetics
-- DNA — Deoxyribonucleic acid, the molecule of heredity
-- Gene — A segment of DNA that codes for a protein`}
+# Big-O Notation
+- O(1) — Constant time; runtime does not grow with input size
+- O(n log n) — Typical time for efficient sorting algorithms like mergesort`}
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
             className="min-h-[280px] font-mono text-xs leading-relaxed"
           />
-        ) : (
+        )}
+
+        {mode === 'structured' && (
           <>
             <TextArea
               label="Front (questions)"
               hint="Separate cards with blank lines or ---"
-              placeholder="What is photosynthesis?&#10;---&#10;Define osmosis"
+              placeholder="What is a closure in JavaScript?&#10;---&#10;Explain time complexity of binary search"
               value={frontText}
               onChange={(e) => setFrontText(e.target.value)}
             />
             <TextArea
               label="Back (answers)"
               hint="Answers in the same order as fronts"
-              placeholder="Process plants use to convert light into energy&#10;---&#10;Movement of water across a membrane"
+              placeholder="A function that captures variables from its enclosing scope&#10;---&#10;O(log n) — halves the search space each step"
               value={backText}
               onChange={(e) => setBackText(e.target.value)}
             />
@@ -150,48 +182,20 @@ A: Cell division producing four genetically different gametes.
       </Card>
 
       {preview.totalCards > 0 && (
-        <Card padding="sm" className="border-indigo-100 bg-indigo-50/30">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="h-4 w-4 text-indigo-600" />
-            <span className="text-sm font-medium text-indigo-900">
-              Preview — {preview.totalCards} cards in {preview.topics.length}{' '}
-              {preview.topics.length === 1 ? 'topic' : 'topics'}
-            </span>
-          </div>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {preview.topics.map((topic) => (
-              <div key={topic.name}>
-                <Badge variant="topic">{topic.name}</Badge>
-                <ul className="mt-2 space-y-1.5">
-                  {topic.cards.slice(0, 3).map((card, i) => (
-                    <li
-                      key={i}
-                      className="text-xs text-zinc-600 pl-2 border-l-2 border-indigo-200"
-                    >
-                      <span className="font-medium text-zinc-800">{card.front}</span>
-                      <span className="text-zinc-400"> → </span>
-                      <span>{card.back.slice(0, 80)}{card.back.length > 80 ? '…' : ''}</span>
-                    </li>
-                  ))}
-                  {topic.cards.length > 3 && (
-                    <li className="text-xs text-zinc-400 pl-2">
-                      +{topic.cards.length - 3} more cards
-                    </li>
-                  )}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <DeckPreview preview={preview} isStreaming={mode === 'ai' && aiStreaming} />
       )}
 
       <Button
         size="lg"
-        className="w-full"
+        className={`w-full ${mode === 'ai' ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
         disabled={!canCreate}
         onClick={handleCreate}
       >
-        <Sparkles className="h-4 w-4" />
+        {mode === 'ai' ? (
+          <Wand2 className="h-4 w-4" />
+        ) : (
+          <FileUp className="h-4 w-4" />
+        )}
         Create Deck ({preview.totalCards} cards)
       </Button>
     </div>

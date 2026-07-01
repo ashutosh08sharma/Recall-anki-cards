@@ -14,7 +14,7 @@ interface LayoutProps {
 }
 
 const navItems: { view: AppView; label: string; icon: typeof BookOpen }[] = [
-  { view: 'import', label: 'Import', icon: PlusCircle },
+  { view: 'import', label: 'Create', icon: PlusCircle },
   { view: 'library', label: 'Library', icon: Library },
   { view: 'reminders', label: 'Reminders', icon: Bell },
 ]

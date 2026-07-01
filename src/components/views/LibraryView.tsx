@@ -1,4 +1,4 @@
-import { BookOpen, Trash2, Play, HelpCircle, Bell, Pencil, Share2, Download } from 'lucide-react'
+import { BookOpen, Trash2, Play, HelpCircle, Bell, Pencil, Share2, Download, PlusCircle } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -14,6 +14,7 @@ interface LibraryViewProps {
   onDelete: (deckId: string) => void
   onShare: (decks: Deck[]) => void
   onExportAll: () => void
+  onCreateDeck: () => void
 }
 
 export function LibraryView({
@@ -25,18 +26,22 @@ export function LibraryView({
   onDelete,
   onShare,
   onExportAll,
+  onCreateDeck,
 }: LibraryViewProps) {
   if (decks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="rounded-full bg-indigo-50 p-4 mb-4">
+        <div className="mb-4 rounded-full bg-indigo-50 p-4">
           <BookOpen className="h-8 w-8 text-indigo-400" />
         </div>
         <h2 className="text-lg font-medium text-zinc-900">No decks yet</h2>
-        <p className="mt-1 text-sm text-zinc-500 max-w-sm">
-          Import your notes to create your first flashcard deck. We'll parse topics
-          and questions automatically.
+        <p className="mt-1 max-w-sm text-sm text-zinc-500">
+          Generate flashcards with AI, paste your notes, or import a shared deck to get started.
         </p>
+        <Button size="lg" className="mt-6" onClick={onCreateDeck}>
+          <PlusCircle className="h-4 w-4" />
+          Create your first deck
+        </Button>
       </div>
     )
   }
@@ -53,7 +58,11 @@ export function LibraryView({
             {decks.reduce((s, d) => s + d.cards.length, 0)} total cards · newest first
           </p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex shrink-0 gap-2">
+          <Button size="sm" variant="secondary" onClick={onCreateDeck}>
+            <PlusCircle className="h-3.5 w-3.5" />
+            New Deck
+          </Button>
           <Button size="sm" variant="secondary" onClick={onExportAll}>
             <Download className="h-3.5 w-3.5" />
             Export All
@@ -71,11 +80,11 @@ export function LibraryView({
             <Card key={deck.id} className="group">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-semibold text-zinc-900 truncate">
+                  <h3 className="truncate text-base font-semibold text-zinc-900">
                     {deck.title}
                   </h3>
                   {deck.description && (
-                    <p className="mt-0.5 text-sm text-zinc-500 line-clamp-2">
+                    <p className="mt-0.5 line-clamp-2 text-sm text-zinc-500">
                       {deck.description}
                     </p>
                   )}
@@ -96,7 +105,7 @@ export function LibraryView({
                 <button
                   type="button"
                   onClick={() => onDelete(deck.id)}
-                  className="opacity-0 group-hover:opacity-100 p-2 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                  className="rounded-lg p-2 text-zinc-400 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
                   aria-label="Delete deck"
                 >
                   <Trash2 className="h-4 w-4" />

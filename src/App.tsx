@@ -143,6 +143,7 @@ function App() {
           onEdit={handleEdit}
           onDelete={deleteDeck}
           onShare={setShareDecks}
+          onCreateDeck={() => setView('import')}
           onExportAll={() => {
             if (decks.length === 0) return
             setShareDecks(decks)
