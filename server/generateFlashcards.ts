@@ -32,8 +32,8 @@ const LIMITS = {
   MAX_PROMPT_LENGTH: 2_000,
 } as const
 
-/** Fast model for serverless — avoids thinking-mode latency on Vercel. */
-const GENERATION_MODEL = 'gemini-2.0-flash'
+/** Gemini 3 Flash — fast structured output for serverless. */
+const GENERATION_MODEL = 'gemini-3-flash-preview'
 
 export type AIGenerateRequest = {
   topic: string

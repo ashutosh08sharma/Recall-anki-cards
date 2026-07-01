@@ -27,8 +27,23 @@ export async function POST(request: Request): Promise<Response> {
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Generation failed'
-    const status = message.includes('not configured') ? 503 : 400
-    return Response.json({ error: message }, { status })
+    const isQuota =
+      message.includes('quota') ||
+      message.includes('Quota exceeded') ||
+      message.includes('rate-limit')
+    const status = message.includes('not configured')
+      ? 503
+      : isQuota
+        ? 429
+        : 400
+    return Response.json(
+      {
+        error: isQuota
+          ? 'Gemini API quota exceeded. Check your API key limits at ai.google.dev or try again later.'
+          : message,
+      },
+      { status }
+    )
   }
 }
 
