@@ -34,7 +34,7 @@ export interface ParseResult {
   totalCards: number
 }
 
-export type AppView = 'import' | 'library' | 'study' | 'quiz' | 'reminders' | 'edit'
+export type AppView = 'import' | 'library' | 'study' | 'quiz' | 'global-quiz' | 'reminders' | 'edit'
 
 export interface StudySession {
   deckId: string

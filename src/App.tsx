@@ -13,7 +13,7 @@ import { Layout } from './components/Layout'
 import { ImportView } from './components/views/ImportView'
 import { LibraryView } from './components/views/LibraryView'
 import { StudyView } from './components/views/StudyView'
-import { QuizView } from './components/views/QuizView'
+import { QuizView } from './components/Quiz/QuizView'
 import { EditDeckView } from './components/views/EditDeckView'
 import { RemindersView } from './components/views/RemindersView'
 import { ShareDeckDialog } from './components/ShareDeckDialog'
@@ -92,6 +92,12 @@ function App() {
     setView('study')
   }
 
+  const handleGlobalQuiz = () => {
+    setActiveDeckId(null)
+    setQuizSessionKey((k) => k + 1)
+    setView('global-quiz')
+  }
+
   const handleQuiz = (deckId: string) => {
     openDeck(deckId)
     setQuizSessionKey((k) => k + 1)
@@ -109,6 +115,11 @@ function App() {
   }
 
   const exitDeckView = () => {
+    setActiveDeckId(null)
+    setView('library')
+  }
+
+  const exitQuizView = () => {
     setActiveDeckId(null)
     setView('library')
   }
@@ -142,6 +153,7 @@ function App() {
           decks={decks}
           onStudy={handleStudy}
           onQuiz={handleQuiz}
+          onGlobalQuiz={handleGlobalQuiz}
           onReminders={handleReminders}
           onEdit={handleEdit}
           onDelete={deleteDeck}
@@ -168,9 +180,18 @@ function App() {
       {view === 'quiz' && activeDeck && (
         <QuizView
           key={quizSessionKey}
-          cards={activeDeck.cards}
-          deckTitle={activeDeck.title}
-          onExit={exitDeckView}
+          mode="deck"
+          deck={activeDeck}
+          onExit={exitQuizView}
+        />
+      )}
+
+      {view === 'global-quiz' && (
+        <QuizView
+          key={quizSessionKey}
+          mode="global"
+          decks={decks}
+          onExit={exitQuizView}
         />
       )}
 

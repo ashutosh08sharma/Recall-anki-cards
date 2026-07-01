@@ -4,8 +4,10 @@ import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { FilterBar } from '../FilterBar'
+import { GlobalQuizBanner } from '../Quiz/GlobalQuizBanner'
 import { getDueCards, getRevisitCards } from '../../lib/spacedRepetition'
 import { collectDeckTopics, filterDecks } from '../../lib/libraryFilters'
+import { countGlobalQuizPool } from '../../lib/quiz'
 import { useLibraryFilters } from '../../hooks/useLibraryFilters'
 import type { Deck } from '../../types'
 
@@ -13,6 +15,7 @@ interface LibraryViewProps {
   decks: Deck[]
   onStudy: (deckId: string) => void
   onQuiz: (deckId: string) => void
+  onGlobalQuiz: () => void
   onReminders: (deckId: string) => void
   onEdit: (deckId: string) => void
   onDelete: (deckId: string) => void
@@ -25,6 +28,7 @@ export function LibraryView({
   decks,
   onStudy,
   onQuiz,
+  onGlobalQuiz,
   onReminders,
   onEdit,
   onDelete,
@@ -41,7 +45,7 @@ export function LibraryView({
 
   if (decks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="flex flex-col items-center justify-center py-24 text-center" role="status">
         <div className="mb-4 rounded-full bg-indigo-50 p-4">
           <BookOpen className="h-8 w-8 text-indigo-400" />
         </div>
@@ -82,6 +86,12 @@ export function LibraryView({
           </Button>
         </div>
       </div>
+
+      <GlobalQuizBanner
+        deckCount={decks.length}
+        cardCount={countGlobalQuizPool(decks)}
+        onStart={onGlobalQuiz}
+      />
 
       <FilterBar
         filters={filters}
